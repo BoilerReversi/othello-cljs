@@ -1,0 +1,10 @@
+#squares div {
+    display: block;
+    float: left;
+
+    width: 25px;
+    height: 25px;
+    background: DarkGreen;
+
+    margin-right: 5px;
+}
