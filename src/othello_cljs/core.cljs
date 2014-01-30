@@ -168,10 +168,9 @@
                 (if (= next-board (first history))
                   (recur history player)
                   (recur (cons next-board history) next-player))))
-            [[:undo]] (recur (if (empty? (rest history))
-                               history
-                               (rest history))
-                             (flip-player player))
+            [[:undo]] (if (empty? (rest history))
+                        (recur history player)
+                        (recur (rest history) (flip-player player)))
             [[:reset]] (recur (list initial-state) :o)
             [[:legal b]] (do (println (str "LEGAL " b)) (recur history player)) ;; TODO: set flag or something
             [[:ai b]] (do (println (str "AI " b)) (recur history player)) ;; TODO: set flag or something
