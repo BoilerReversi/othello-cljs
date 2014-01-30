@@ -48,18 +48,41 @@
 (defn get-lines [board coord]
   (let [in-bounds? (fn [[row col]] (and (< row 7) (< col 7)
                                        (>= row 0) (>= col 0)))
-        get-directional-walk (fn [dir coord]
-                               (map (partial get-in board)
-                                    (take-while in-bounds?
-                                                ((directional-walks dir) coord))))]
+        get-directional-walk (fn [dir coord] ;; WHAT A MESS
+                               (take-while 
+                                #(not= % :empty)
+                                (rest 
+                                 (map 
+                                  (partial get-in board)
+                                  (take-while
+                                   in-bounds?
+                                   ((directional-walks dir) coord))))))]
     (reduce (fn [m dir] (assoc m dir (get-directional-walk dir coord)))
             {} directions)))
 
-(defn flippable-directions [board coord]
-  'todo)
+(defn flippable-directions [board player coord]
+  (let [sq (get-in board coord)
+        flippable? (fn [ls] (and (= (first ls) (flip-player player))
+                                 (some #(= player %) (rest ls))))]
+    (if (not= :empty sq)
+      '()
+      (reduce (fn [ls [k v]] (if (flippable? v) (cons k ls) ls)) '() (get-lines board coord)))))
 
-(defn flip-direction [board coord direction]
-  'todo)
+
+(defn flip-direction [board player coord direction]
+  (reduce (fn [brd crd] (flip-square brd crd)) board
+          (take-while (fn [crd] (not= player (get-in board crd))) ((directional-walks direction) coord))))
+
+;;returns vector [next-board next-player]
+;;if illegal move, [next-board next-player] == [board player]
+(defn make-move [board player coord]
+  (if (empty? (flippable-directions board player coord))
+    [board player]
+    [(assoc-in (reduce (fn [brd dir] (flip-direction brd player coord dir))
+                       board
+                       (flippable-directions board player coord))
+               coord player)
+     (flip-player player)]))
 
 ;; concurrency helpers
 (defn listen [e1 type]
@@ -132,20 +155,24 @@
                   state)))))
 
   ;; CENTRAL EVENT HANDLING
-  (go (loop [history (list initial-state)]
+  (go (loop [history (list initial-state)
+             player :o]
+        (println (first history))
+        (set! (.-innerHTML (dom/getElement "to-move")) (str "TO MOVE " player))
         (>! to-board-chan (board->table (first history))) ;; TODO: add legal moves/ai if required
         (let [event (<! event-chan)]
           (match [event]
             [[:move n]] 
             (let [row (quot n 8), col (mod n 8)]
-              (println (get-lines (first history) [row col]))
-              (recur (if (= (get-in (first history) [row col]) :empty)
-                       history
-                       (cons (flip-square (first history) [row col]) history)))) ;; !!
+              (let [[next-board next-player] (make-move (first history) player [row col])]
+                (if (= next-board (first history))
+                  (recur history player)
+                  (recur (cons next-board history) next-player))))
             [[:undo]] (recur (if (empty? (rest history))
                                history
-                               (rest history)))
-            [[:reset]] (recur (list initial-state))
-            [[:legal b]] (do (println (str "LEGAL " b)) (recur history)) ;; TODO: set flag or something
-            [[:ai b]] (do (println (str "AI " b)) (recur history)) ;; TODO: set flag or something
-            :else (do (println "ERROR WTF") (recur history)))))))
+                               (rest history))
+                             (flip-player player))
+            [[:reset]] (recur (list initial-state) :o)
+            [[:legal b]] (do (println (str "LEGAL " b)) (recur history player)) ;; TODO: set flag or something
+            [[:ai b]] (do (println (str "AI " b)) (recur history player)) ;; TODO: set flag or something
+            :else (do (println "ERROR WTF") (recur history player)))))))

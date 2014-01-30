@@ -3,14 +3,7 @@
     <link href="style.css" rel="stylesheet" type="text/css">
   </head>
   <body>
-    <!-- TODO: THE BOARD 
-    <div id="squares">
-      <div id="0"></div>
-      <div id="1"></div>
-      <div id="2"></div>
-      <div id="3"></div>
-      <div id="4"></div>
-    </div>-->
+    <p id="to-move"> TO MOVE :o </p>
     <table>
       <tr>
 	<td id="0">_</td>
@@ -97,6 +90,8 @@
     <input id="legal" type="checkbox">Show legal moves</input>
     <input id="ai" type="checkbox">Show suggested move</input>
     <button id="reset">Reset</button>
+    <p> TODO: Legal moves, AI, and checking for winner </p>
+    <p><a href="https://github.com/BoilerReversi/othello-cljs">Github</a></p>
     <script src="out/goog/base.js" type="text/javascript"></script>
     <script src="othello_cljs.js" type="text/javascript"></script>
     <script type="text/javascript">goog.require("othello_cljs.core");</script>
