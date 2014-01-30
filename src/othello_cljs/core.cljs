@@ -11,6 +11,7 @@
 (println "BOILERreversi")
 
 ;; othello
+;; split this into modules later mb
 (def flip-player {:x :o, :o :x, :empty :empty, :! :!})
 
 (defn flip-square [board [row col]]
@@ -29,6 +30,36 @@
 (defn board->table [board]
   (let [keyword->text {:x "x", :o "o", :! "!", :empty "_"}]
     (map keyword->text (flatten board))))
+
+(def directions '(:n :s :e :w :nw :sw :ne :se))
+
+(def directional-walks
+  {:n (partial iterate (fn [[row col]] [(dec row) col]))
+   :s (partial iterate (fn [[row col]] [(inc row) col]))
+   :e (partial iterate (fn [[row col]] [row (inc col)]))
+   :w (partial iterate (fn [[row col]] [row (dec col)]))
+   :nw (partial iterate (fn [[row col]] [(dec row) (dec col)]))
+   :sw (partial iterate (fn [[row col]] [(inc row) (dec col)]))
+   :ne (partial iterate (fn [[row col]] [(dec row) (inc col)]))
+   :se (partial iterate (fn [[row col]] [(inc row) (inc col)]))})
+
+;; get-lines returns a map with keys #{:n :s :e :w :nw :sw :ne :se}
+;; whose values are lists of the flippable line in that direction
+(defn get-lines [board coord]
+  (let [in-bounds? (fn [[row col]] (and (< row 7) (< col 7)
+                                       (>= row 0) (>= col 0)))
+        get-directional-walk (fn [dir coord]
+                               (map (partial get-in board)
+                                    (take-while in-bounds?
+                                                ((directional-walks dir) coord))))]
+    (reduce (fn [m dir] (assoc m dir (get-directional-walk dir coord)))
+            {} directions)))
+
+(defn flippable-directions [board coord]
+  'todo)
+
+(defn flip-direction [board coord direction]
+  'todo)
 
 ;; concurrency helpers
 (defn listen [e1 type]
@@ -107,6 +138,7 @@
           (match [event]
             [[:move n]] 
             (let [row (quot n 8), col (mod n 8)]
+              (println (get-lines (first history) [row col]))
               (recur (if (= (get-in (first history) [row col]) :empty)
                        history
                        (cons (flip-square (first history) [row col]) history)))) ;; !!
